@@ -37,7 +37,7 @@ export default function BudgetPage() {
     setTrips(prev => prev.map(t => t.id === updated.id ? updated : t))
   }
 
-  const pieData = trip?.expenses?.reduce((acc, e) => {
+  const pieData = (trip?.expenses || []).reduce((acc, e) => {
     const ex = acc.find(a => a.name === e.cat)
     if (ex) ex.value += e.amount
     else acc.push({ name: e.cat, value: e.amount })
@@ -46,8 +46,8 @@ export default function BudgetPage() {
 
   const barData = trips.map(t => ({
     name: `${t.from_city}→${t.to_city}`,
-    Budget: t.budget,
-    Dépensé: t.spent,
+    Budget: t.budget || 0,
+    Dépensé: t.spent || 0,
   }))
 
   if (loading) return <p className="text-center text-gray-500">Chargement…</p>
