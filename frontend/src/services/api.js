@@ -20,6 +20,7 @@ export const deleteEntry = (id) => api.delete(`/journal/${id}`)
 export const getGmailAuth = () => api.get('/gmail/auth').then(r => r.data)
 export const getGmailStatus = () => api.get('/gmail/status').then(r => r.data)
 export const scanGmail = () => api.get('/gmail/scan').then(r => r.data)
+export const connectGmail = () => api.get('/gmail/auth').then(r => r.data)
 
 // AI
 export const askAI = (question) => api.post('/ai/chat', { question }).then(r => r.data)
