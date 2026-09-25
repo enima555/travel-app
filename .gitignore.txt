@@ -1,0 +1,14 @@
+# Python
+__pycache__
+.pyc
+venv
+.env
+
+# Node
+node_modules
+dist
+.env.local
+.env.production
+
+# Secrets Google
+client_secret.json
