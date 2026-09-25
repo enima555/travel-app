@@ -1,32 +1,33 @@
 import { useState, useEffect } from 'react'
-import { getJournal, createEntry, deleteEntry } from '../services/api'
+import { getJournal, getTrips, createEntry, deleteEntry } from '../services/api'
 
-export default function JournalPage({ trips }) {
+export default function JournalPage() {
   const [entries, setEntries] = useState([])
-  const [tripId, setTripId] = useState('')
-  const [text, setText] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [trips, setTrips] = useState([])
+  const [form, setForm] = useState({ trip_id: '', text: '' })
+  const [loading, setLoading] = useState(true)
 
-  const fetchEntries = async () => {
-    try { const res = await getJournal(); setEntries(res.data) } catch (e) {}
+  useEffect(() => {
+    Promise.all([getJournal(), getTrips()]).then(([e, t]) => {
+      const safeEntries = Array.isArray(e) ? e : []
+      const safeTrips = Array.isArray(t) ? t : []
+      setEntries(safeEntries)
+      setTrips(safeTrips)
+      if (safeTrips.length > 0) setForm(p => ({ ...p, trip_id: safeTrips[0].id }))
+    }).catch(() => { setEntries([]); setTrips([]) }).finally(() => setLoading(false))
+  }, [])
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!form.text.trim()) return
+    const entry = await createEntry({ trip_id: Number(form.trip_id), text: form.text })
+    setEntries(prev => [entry, ...prev])
+    setForm(p => ({ ...p, text: '' }))
   }
 
-  useEffect(() => { fetchEntries() }, [])
-  useEffect(() => { if (trips.length && !tripId) setTripId(trips[0]?.id) }, [trips])
-
-  const handleSubmit = async () => {
-    if (!text.trim() || !tripId) return
-    setLoading(true)
-    try {
-      await createEntry({ trip_id: Number(tripId), text })
-      setText('')
-      fetchEntries()
-    } finally { setLoading(false) }
-  }
-
-  const handleDelete = async (id) => {
+  const remove = async (id) => {
     await deleteEntry(id)
-    fetchEntries()
+    setEntries(prev => prev.filter(e => e.id !== id))
   }
 
   const tripName = (id) => {
@@ -34,40 +35,62 @@ export default function JournalPage({ trips }) {
     return t ? `${t.from_city} → ${t.to_city}` : 'Voyage inconnu'
   }
 
+  if (loading) return <p className="text-center text-gray-500">Chargement…</p>
+
   return (
     <div>
-      <div className="card mb-4">
-        <h2 className="font-medium mb-4">Nouvelle entrée</h2>
-        <select className="input mb-3" value={tripId} onChange={e => setTripId(e.target.value)}>
-          {trips.map(t => <option key={t.id} value={t.id}>{t.from_city} → {t.to_city}</option>)}
-        </select>
-        <textarea
-          className="input mb-3"
-          rows={4}
-          style={{resize:'vertical'}}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Raconte ta journée, tes impressions, tes anecdotes..."
-        />
-        <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Enregistrement...' : 'Enregistrer'}
-        </button>
-      </div>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">📔 Journal de Voyage</h1>
 
-      <div className="space-y-3">
+      <form onSubmit={submit} className="bg-white rounded-xl shadow p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Nouvelle entrée</h2>
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Voyage</label>
+          <select className="w-full border rounded px-3 py-2" value={form.trip_id}
+            onChange={e => setForm(p => ({ ...p, trip_id: e.target.value }))}>
+            {trips.map(t => (
+              <option key={t.id} value={t.id}>{t.from_city} → {t.to_city} ({t.start})</option>
+            ))}
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mon souvenir</label>
+          <textarea
+            className="w-full border rounded px-3 py-2"
+            rows={4}
+            placeholder="Décrivez votre journée, une rencontre, une découverte..."
+            value={form.text}
+            onChange={e => setForm(p => ({ ...p, text: e.target.value }))}
+          />
+        </div>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-medium">
+          Enregistrer
+        </button>
+      </form>
+
+      <div className="space-y-4">
         {entries.map(e => (
-          <div key={e.id} className="card border-l-4 border-l-blue-400" style={{borderRadius:'0 12px 12px 0'}}>
+          <div key={e.id} className="bg-white rounded-xl shadow p-5">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <p className="text-xs text-gray-400">{String(e.date)} · {tripName(e.trip_id)}</p>
+                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                  {tripName(e.trip_id)}
+                </span>
+                <span className="text-xs text-gray-400 ml-2">{e.date}</span>
               </div>
-              <button className="btn-danger text-xs" onClick={() => handleDelete(e.id)}>Supprimer</button>
+              <button onClick={() => remove(e.id)} className="text-xs text-red-400 hover:text-red-600">✕</button>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{e.text}</p>
+            <p className="text-gray-700 mt-2 leading-relaxed">{e.text}</p>
           </div>
         ))}
-        {entries.length === 0 && <p className="text-gray-400 text-center py-8">Aucune entrée de journal.</p>}
       </div>
+
+      {entries.length === 0 && (
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-5xl mb-4">📔</p>
+          <p className="text-lg">Votre journal est vide</p>
+          <p className="text-sm">Commencez à noter vos souvenirs de voyage</p>
+        </div>
+      )}
     </div>
   )
 }
