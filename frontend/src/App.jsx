@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { Routes, Route, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import TripsPage from './pages/TripsPage'
 import BudgetPage from './pages/BudgetPage'
@@ -21,9 +21,10 @@ export default function App() {
   const fetchTrips = async () => {
     try {
       const res = await getTrips()
-      setTrips(res.data)
+      setTrips(Array.isArray(res) ? res : [])
     } catch (e) {
       console.error(e)
+      setTrips([])
     }
   }
 
