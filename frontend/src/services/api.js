@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const BASE = 'https://travel-app-doee.onrender.com/api'
-const api = axios.create({ baseURL: BASE })
+const api = axios.create({ baseURL: BASE, timeout: 15000 })
 
 // Trips
 export const getTrips = () => api.get('/trips/').then(r => r.data)

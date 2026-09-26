@@ -11,8 +11,14 @@ export default function TripsPage() {
   const [form, setForm] = useState(empty)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  useEffect(() => { getTrips().then(data => setTrips(Array.isArray(data) ? data : [])).catch(() => setTrips([])).finally(() => setLoading(false)) }, [])
+  useEffect(() => {
+    getTrips()
+      .then(data => setTrips(Array.isArray(data) ? data : []))
+      .catch(() => { setTrips([]); setError('Le serveur démarre, patientez 30 secondes puis rechargez la page.') })
+      .finally(() => setLoading(false))
+  }, [])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -27,7 +33,17 @@ export default function TripsPage() {
     setTrips(prev => prev.filter(t => t.id !== id))
   }
 
-  if (loading) return <p className="text-center text-gray-500">Chargement…</p>
+  if (loading) return <p className="text-center text-gray-500 mt-20">Chargement…</p>
+  if (error) return (
+    <div className="text-center mt-20">
+      <p className="text-5xl mb-4">⏳</p>
+      <p className="text-gray-600 font-medium mb-2">Connexion au serveur…</p>
+      <p className="text-gray-400 text-sm mb-4">{error}</p>
+      <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Réessayer
+      </button>
+    </div>
+  )
 
   return (
     <div>
